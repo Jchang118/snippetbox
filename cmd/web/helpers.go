@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 )
 
 // The serverError helper writes a log entry at Error level (including the request
@@ -34,18 +36,30 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	// method that we made earlier and return.
 	ts, ok := app.templateCache[page]
 	if !ok {
-		err := fmt.Errorf("the page %s does not exist", page)
+		err := fmt.Errorf("the template %s does not exist", page)
 		app.serverError(w, r, err)
 		return
 	}
 
-	// Write out the provided HTTP status code ('200 OK', '400 Bad Request', etc.)
-	w.WriteHeader(status)
+	// Initialize a new buffer.
+	buf := new(bytes.Buffer)
 
-	// Execute the template set and write the respone body. Again, if there
-	// is any error we call the serverError() helper.
-	err := ts.ExecuteTemplate(w, "base", data)
+	err := ts.ExecuteTemplate(buf, "base", data)
 	if err != nil {
 		app.serverError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(status)
+
+	buf.WriteTo(w)
+}
+
+// Create a newTemplateData() helper, which returns a templateData struct
+// initialized with the current year. Note that we're not using the *http.Request
+// parameter here at the mment, but we will use it later in the book.
+func (app *application) newTemplateData(r *http.Request) templateData {
+	return templateData{
+		CurrentYear: time.Now().Year(),
 	}
 }
