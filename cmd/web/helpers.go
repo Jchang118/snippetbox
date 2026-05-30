@@ -2,9 +2,12 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/go-playground/form/v4"
 )
 
 // The serverError helper writes a log entry at Error level (including the request
@@ -60,4 +63,31 @@ func (app *application) newTemplateData(r *http.Request) templateData {
 	return templateData{
 		CurrentYear: time.Now().Year(),
 	}
+}
+
+// Create a new decodePostForm() helper method.The second parameter here, dst,
+// is the target destination into which we want to decode the form data.
+func (app *application) decodePostForm(r *http.Request, dst any) error {
+	// Call ParseForm() on the request, in the same way that we did in our
+	//  snippetCreatePost handler.
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	// Call Decode() on our decoder instance, passing the target destiation as
+	// the first parameter
+	err = app.formDecoder.Decode(dst, r.PostForm)
+	if err != nil {
+		// If we try to use an invalid target destination, the Decode() method
+		// will return an error with the type form.InvalidDecoderError. We use
+		// errors.AsType() to check for this and panic. At the end of this
+		// chapter we'll talk about panicking versus returning errors, and
+		// discuss why it's an appropriate thing to do in this specific situation.
+		if _, ok := errors.AsType[*form.InvalideDecoderError](err); ok {
+			panic(err)
+		}
+		return err
+	}
+	return nil
 }

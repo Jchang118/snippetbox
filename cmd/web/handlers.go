@@ -56,33 +56,29 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, "create.tmpl", data)
 }
 
-// Remove the explicit FieldErrors struct field and instead embed the Validator
-// struct. Embedding this means that our snippCreateForm "inherits" all the
-// fields and methods of our Validator struct (including the FieldErrors field).
+// Update our snippetCreateForm struct to include struct tags which tell the
+// decoder how to map HTML form values into the different struct fields. So, for
+// example, here we're telling the decoder to store the value from the HTML form
+// input with the name "title" in the Title field. The struct tag `form:"-"`
+// tells the decoder to completely ignore a field during decoding.
 type snippetCreateForm struct {
-	Title   string
-	Content string
-	Expires int
-	validator.Validator
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+	var form snippetCreateForm
+
+	// Call the Decode() method of the form decoder, passing in the current
+	// request and *a pointer* to our snippetCreateForm struct. This will
+	// essentially fill our struct with the relevant values from the HTML form.
+	// If there is a problem, we return a 400 Bad Request response to the client.
+	err := app.decodePostForm(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
-	}
-
-	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	form := snippetCreateForm{
-		Title:   r.PostForm.Get("title"),
-		Content: r.PostForm.Get("content"),
-		Expires: expires,
 	}
 
 	form.CheckField(validator.NotBlank(form.Title), "title", "This field cannot be blank")
