@@ -62,6 +62,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 func (app *application) newTemplateData(r *http.Request) templateData {
 	return templateData{
 		CurrentYear: time.Now().Year(),
+		Flash:       app.sessionManager.PopString(r.Context(), "flash"),
 	}
 }
 
@@ -84,7 +85,7 @@ func (app *application) decodePostForm(r *http.Request, dst any) error {
 		// errors.AsType() to check for this and panic. At the end of this
 		// chapter we'll talk about panicking versus returning errors, and
 		// discuss why it's an appropriate thing to do in this specific situation.
-		if _, ok := errors.AsType[*form.InvalideDecoderError](err); ok {
+		if _, ok := errors.AsType[*form.InvalidDecoderError](err); ok {
 			panic(err)
 		}
 		return err
