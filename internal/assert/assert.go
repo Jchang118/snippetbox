@@ -63,3 +63,24 @@ func isNil(v any) bool {
 	// Other types like string, bool, int are never nil
 	return false
 }
+
+func NotEqual[T comparable](t *testing.T, got, want T) {
+	t.Helper()
+	if got == want {
+		t.Errorf("got: %v; expected values to be different", got)
+	}
+}
+
+func False(t *testing.T, got bool) {
+	t.Helper()
+	if got {
+		t.Errorf("got: true; want: false")
+	}
+}
+
+func NotNil(t *testing.T, got any) {
+	t.Helper()
+	if isNil(got) {
+		t.Errorf("got: nil; want: non-nil")
+	}
+}
