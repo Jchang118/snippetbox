@@ -7,7 +7,7 @@ import (
 	"github.com/jchang118/snippetbox/internal/assert"
 )
 
-func TestHumanData(t *testing.T) {
+func TestHumanDate(t *testing.T) {
 	// Create a slice of anonymous structs the test case name,
 	// input to our humanDate() function (the tm field), and expected output
 	// (the want field)
