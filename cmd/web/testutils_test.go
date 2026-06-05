@@ -2,11 +2,15 @@ package main
 
 import (
 	"bytes"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -108,6 +112,56 @@ func (ts *testServer) get(t *testing.T, urlPath string) testResponse {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	res, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return testResponse{
+		status:  res.StatusCode,
+		headers: res.Header,
+		cookies: res.Cookies(),
+		body:    string(bytes.TrimSpace(body)),
+	}
+}
+
+func extractCSRFToken(t *testing.T, body string) string {
+	// Define a regular expression which captures the CSRF token value from the
+	// HTML for our user signup page.
+	csrfTokenRX := regexp.MustCompile(`<input type='hidden' name='csrf_token' value='(.+)'>`)
+
+	// Use the FindStringSubmatch method to extract the token from the HTML body.
+	// Note that this returns an slice with the entire matched pattern in the
+	// first position, and the values of any captured data in the subsequent
+	// positions.
+	matches := csrfTokenRX.FindStringSubmatch(body)
+	if len(matches) < 2 {
+		t.Fatal("no csrf token found in body")
+	}
+
+	return html.UnescapeString(matches[1])
+}
+
+// Create a postForm method for sending POST requests to the test server. The
+// final parameter to this method is a url.Values map which can contain any
+// form data that you want to send in the request body.
+func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) testResponse {
+	req, err := http.NewRequest(http.MethodPost, ts.URL+urlPath, strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Set the appropriate Content-Type header for form data and the Sec-Fetch-Site
+	// header.
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
 
 	res, err := ts.Client().Do(req)
 	if err != nil {
