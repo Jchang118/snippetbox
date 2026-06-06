@@ -210,3 +210,39 @@ func TestUserSignup(t *testing.T) {
 		})
 	}
 }
+
+func TestSnippetCreate(t *testing.T) {
+	app := newTestApplication(t)
+	ts := newTestServer(t, app.routes())
+	defer ts.Close()
+
+	t.Run("Unauthenticated", func(t *testing.T) {
+		ts.resetClientCookieJar(t)
+
+		res := ts.get(t, "/snippet/create")
+		assert.Equal(t, res.status, http.StatusSeeOther)
+		assert.Equal(t, res.headers.Get("Location"), "/user/login")
+	})
+
+	t.Run("Authenticated", func(t *testing.T) {
+		ts.resetClientCookieJar(t)
+
+		// Make a GET /user/login request.
+		res := ts.get(t, "/user/login")
+
+		// Make a POST /user/login request using the credentials from our mock
+		// user model and the CSRF token extracted from the previous response.
+		form := url.Values{}
+		form.Add("email", "alice@example.com")
+		form.Add("password", "pa$$word")
+		form.Add("csrf_token", extractCSRFToken(t, res.body))
+
+		ts.postForm(t, "/user/login", form)
+
+		// Then check that the authenticated user is shown the create snippet
+		// form.
+		res = ts.get(t, "/snippet/create")
+		assert.Equal(t, res.status, http.StatusOK)
+		assert.True(t, strings.Contains(res.body, "<form action='/snippet/create' method='POST'>"))
+	})
+}

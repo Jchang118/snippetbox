@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jchang118/snippetbox/internal/models/mocks"
+	mocks "github.com/jchang118/snippetbox/internal/models/mock"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
